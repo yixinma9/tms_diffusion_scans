@@ -1,0 +1,63 @@
+# this script is used to process the tms-diffusion experiment on 20231104
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process
+mrconvert ../tms_diffusion_20231105 Ch1_9A_delta16ms.nii.gz 10
+mrconvert ../tms_diffusion_20231105 Ch3_9A_delta16ms.nii.gz 11
+mrconvert ../tms_diffusion_20231105 Ch2_9A_delta16ms.nii.gz 12
+mrconvert ../tms_diffusion_20231105 Ch12_9A_delta16ms.nii.gz 13
+mrconvert ../tms_diffusion_20231105 Ch23_9A_delta16ms.nii.gz 14
+mrconvert ../tms_diffusion_20231105 Ch13_9A_delta16ms.nii.gz 15
+
+mrconvert ../tms_diffusion_20231105 Ch3_9A_delta16ms_test.nii.gz 7
+mrconvert ../tms_diffusion_20231105 Ch3_9A_delta12ms_test.nii.gz 8
+mrconvert ../tms_diffusion_20231105 Ch1_9A_delta12ms_test.nii.gz 9
+
+# Ch2_9A_delta20ms is not a good volume
+# So I decide to use delta 16ms to show case the ADC value here.
+
+export PATH=/Users/qm022/install/:$PATH
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/mean
+for ch_name in {Ch1,Ch2,Ch3,Ch12,Ch13,Ch23};do
+mov=${ch_name}.nii.gz
+targ=b0.nii.gz
+/Users/qm022/build/install/bin/antsRegistrationSyN.sh -d 3 \
+-t so -f ${targ} \
+-m ${mov} -o Antsso_${ch_name}_ -n 8 -r 1
+done
+
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process
+for ch_name in {Ch1,Ch2,Ch3,Ch12,Ch13,Ch23};do 
+mrconvert ${ch_name}_9A_delta16ms.nii.gz -coord 3 0:1 temp.nii.gz -force
+mrmath temp.nii.gz mean mean/${ch_name}.nii.gz -axis 3 -force
+rm temp.nii.gz
+done
+
+mrconvert b0.nii.gz -coord 3 0:1 temp.nii.gz -force
+mrmath temp.nii.gz mean mean/b0.nii.gz -axis 3 -force
+rm temp.nii.gz
+
+## calculate B0 maps and gradient maps
+mrconvert ../tms_diffusion_20231104 Ch2_500mA_p.nii.gz 1
+mrconvert ../tms_diffusion_20231104 Ch2_500mA_n.nii.gz 3
+mrconvert ../tms_diffusion_20231104 Ch3_500mA_p.nii.gz 5
+mrconvert ../tms_diffusion_20231104 Ch3_500mA_n.nii.gz 7
+mrconvert ../tms_diffusion_20231104 Ch1_500mA_p.nii.gz 9
+mrconvert ../tms_diffusion_20231104 Ch1_500mA_n.nii.gz 11
+
+for ch_name in {Ch1_500mA_p,Ch1_500mA_n,Ch2_500mA_p,Ch2_500mA_n,Ch3_500mA_p,Ch3_500mA_n};do 
+mrcalc ${ch_name}.nii.gz 2048 -subtract pi -multiply 4096 -divide 0.00246 -divide B0_${ch_name}.nii.gz 
+done
+
+for ch_name in {Ch1_500mA_p,Ch1_500mA_n,Ch2_500mA_p,Ch2_500mA_n,Ch3_500mA_p,Ch3_500mA_n};do 
+mrcalc ${ch_name}.nii.gz pi -multiply 4096 -divide 0.00246 -divide B0test_${ch_name}.nii.gz 
+done
+
+
+
+
+
+
+
+
+
+
+
