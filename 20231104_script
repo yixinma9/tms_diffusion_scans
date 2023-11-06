@@ -43,6 +43,13 @@ mrconvert ../tms_diffusion_20231104 Ch3_500mA_n.nii.gz 7
 mrconvert ../tms_diffusion_20231104 Ch1_500mA_p.nii.gz 9
 mrconvert ../tms_diffusion_20231104 Ch1_500mA_n.nii.gz 11
 
+mrconvert ../../tms_diffusion_20231104 Ch2_500mA_p_mag.nii.gz 0
+mrconvert ../../tms_diffusion_20231104 Ch2_500mA_n_mag.nii.gz 2
+mrconvert ../../tms_diffusion_20231104 Ch3_500mA_p_mag.nii.gz 4
+mrconvert ../../tms_diffusion_20231104 Ch3_500mA_n_mag.nii.gz 6
+mrconvert ../../tms_diffusion_20231104 Ch1_500mA_p_mag.nii.gz 8
+mrconvert ../../tms_diffusion_20231104 Ch1_500mA_n_mag.nii.gz 10
+
 for ch_name in {Ch1_500mA_p,Ch1_500mA_n,Ch2_500mA_p,Ch2_500mA_n,Ch3_500mA_p,Ch3_500mA_n};do 
 mrcalc ${ch_name}.nii.gz 2048 -subtract pi -multiply 4096 -divide 0.00246 -divide B0_${ch_name}.nii.gz 
 done
@@ -51,7 +58,57 @@ for ch_name in {Ch1_500mA_p,Ch1_500mA_n,Ch2_500mA_p,Ch2_500mA_n,Ch3_500mA_p,Ch3_
 mrcalc ${ch_name}.nii.gz pi -multiply 4096 -divide 0.00246 -divide B0test_${ch_name}.nii.gz 
 done
 
+mrmath Ch3_500mA_p_mag.nii.gz mean Ch3_500mA_p_mag_mean.nii.gz -axis 3
+bet Ch3_500mA_p_mag_mean.nii.gz Ch3_500mA_p_mag_mean_bet -m
 
+mrcalc Ch1_500mA_p_mag_mean_bet_mask.nii.gz Ch2_500mA_p_mag_mean_bet_mask.nii.gz -add Ch3_500mA_p_mag_mean_bet_mask.nii.gz -add 0 -gt mask.nii.gz
+maskfilter mask.nii.gz erode -npass 2 mask_erode2.nii.gz
+
+export PATH=/Users/qm022/install/:$PATH
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/mean
+ch_name=mag2b0
+targ=b0.nii.gz
+mov=../B0maps/Ch1_500mA_p_mag_mean_bet.nii.gz
+/Users/qm022/build/install/bin/antsRegistrationSyN.sh -d 3 \
+-t so -f ${targ} \
+-m ${mov} -o Antsso_${ch_name}_ -n 8 -r 1
+
+for input in {Gz_mT_per_m_Ch1_1A,Gz_mT_per_m_Ch2_1A,Gz_mT_per_m_Ch3_1A,Gxyz_mT_per_m_Ch1_1A,Gxyz_mT_per_m_Ch2_1A,Gxyz_mT_per_m_Ch3_1A};do
+for input in {B0maps_Ch1_1A,B0maps_Ch2_1A,B0maps_Ch3_1A};do
+
+for input in {Gx_mT_per_m_Ch1_1A,Gx_mT_per_m_Ch2_1A,Gx_mT_per_m_Ch3_1A,Gy_mT_per_m_Ch1_1A,Gy_mT_per_m_Ch2_1A,Gy_mT_per_m_Ch3_1A};do
+
+for input in {Gz_mT_per_m_Ch1_1A,Gz_mT_per_m_Ch2_1A,Gz_mT_per_m_Ch3_1A,Gxyz_mT_per_m_Ch1_1A,Gxyz_mT_per_m_Ch2_1A,Gxyz_mT_per_m_Ch3_1A};do
+mkdir /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/B0maps_warped
+mkdir /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/B0maps_warped_masked
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/B0maps
+/Users/qm022/build/install/bin/antsApplyTransforms \
+-d 3 \
+-i ${input}.nii \
+-r ../mean/b0.nii.gz \
+-t ../mean/Antsso_mag2b0_0GenericAffine.mat \
+-t ../mean/Antsso_mag2b0_1Warp.nii.gz \
+-o ../B0maps_warped/${input}.nii.gz
+done
+
+mkdir ../B0maps_warped_masked
+for input in {Gx_mT_per_m_Ch1_1A,Gx_mT_per_m_Ch2_1A,Gx_mT_per_m_Ch3_1A,Gy_mT_per_m_Ch1_1A,Gy_mT_per_m_Ch2_1A,Gy_mT_per_m_Ch3_1A};do
+
+mrcalc ../B0maps_warped/${input}.nii.gz ../B0maps_warped/mask_erode2.nii.gz -multiply ../B0maps_warped_masked/${input}.nii.gz
+done
+
+for input in {mask_erode2,mask};do
+mkdir /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/B0maps_warped
+cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/B0maps
+/Users/qm022/build/install/bin/antsApplyTransforms \
+-d 3 \
+-i ${input}.nii \
+-r ../mean/b0.nii.gz \
+-t ../mean/Antsso_mag2b0_0GenericAffine.mat \
+-t ../mean/Antsso_mag2b0_1Warp.nii.gz \
+-o ../B0maps_warped/${input}.nii.gz \
+-n  NearestNeighbor
+done
 
 
 
