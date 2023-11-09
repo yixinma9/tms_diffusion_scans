@@ -14,6 +14,7 @@ mrconvert ../tms_diffusion_20231105 Ch1_9A_delta12ms_test.nii.gz 9
 # Ch2_9A_delta20ms is not a good volume
 # So I decide to use delta 16ms to show case the ADC value here.
 
+path+="/Users/qm022/build/install/bin"  
 export PATH=/Users/qm022/install/:$PATH
 cd /Users/qm022/Documents/projects/hardware/tms_diffusion_2023110405_process/mean
 for ch_name in {Ch1,Ch2,Ch3,Ch12,Ch13,Ch23};do
